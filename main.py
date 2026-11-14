@@ -4,6 +4,9 @@ Usage:
     python main.py            # voice mode if available, else text mode
     python main.py --text     # force text mode
     python main.py --no-wake  # voice mode without the "jarvis" wake word
+
+Backends (see README): free local model via Ollama by default; the Claude
+API is used automatically if ANTHROPIC_API_KEY is set.
 """
 
 import os
@@ -11,6 +14,27 @@ import sys
 
 WAKE_WORD = "jarvis"
 EXIT_PHRASES = {"exit", "quit", "goodbye", "shut down", "shutdown", "go to sleep"}
+
+
+def check_ollama() -> bool:
+    """True if the Ollama server is reachable and the chosen model is pulled."""
+    model = os.environ.get("JARVIS_MODEL", "llama3.2")
+    try:
+        import ollama
+    except ImportError:
+        print("The 'ollama' Python package is missing. Run: pip install -r requirements.txt")
+        return False
+    try:
+        names = [m.model for m in ollama.list().models]
+    except Exception:  # noqa: BLE001 — any failure means the server isn't up
+        print("Ollama isn't running. Install it from https://ollama.com/download,")
+        print(f"then run:  ollama pull {model}")
+        print("(The Ollama app runs the server automatically once installed.)")
+        return False
+    if not any(n.startswith(model) for n in names):
+        print(f"Model '{model}' isn't downloaded yet. Run:  ollama pull {model}")
+        return False
+    return True
 
 
 def text_mode(jarvis) -> None:
@@ -63,14 +87,17 @@ def voice_mode(jarvis, use_wake_word: bool = True) -> None:
 
 
 def main() -> None:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY is not set. Get a key at https://platform.claude.com/")
-        print('Then:  export ANTHROPIC_API_KEY="sk-ant-..."  (or setx on Windows)')
+    using_claude = bool(os.environ.get("ANTHROPIC_API_KEY")) or \
+        os.environ.get("JARVIS_BACKEND", "").lower() == "claude"
+    if not using_claude and not check_ollama():
         sys.exit(1)
 
-    from jarvis_assistant import Jarvis
+    from jarvis_assistant import make_jarvis
 
-    jarvis = Jarvis()
+    jarvis = make_jarvis()
+    backend = type(jarvis).__name__.replace("Jarvis", "")
+    print(f"[backend: {backend}]")
+
     force_text = "--text" in sys.argv
     use_wake = "--no-wake" not in sys.argv
 

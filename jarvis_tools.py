@@ -1,8 +1,9 @@
 """Tools JARVIS can use on your machine.
 
-Each function decorated with @beta_tool becomes a tool Claude can call.
-The docstring (including Args) is what Claude reads to decide when and
-how to use the tool — keep them accurate.
+Plain Python functions. Both backends (Ollama and Claude) generate tool
+schemas from each function's signature and docstring (including Args) —
+that text is what the model reads to decide when and how to call a tool,
+so keep it accurate.
 """
 
 import datetime
@@ -13,18 +14,15 @@ import threading
 import webbrowser
 
 import psutil
-from anthropic import beta_tool
 
 OS = platform.system()  # "Darwin", "Windows", "Linux"
 
 
-@beta_tool
 def get_current_time() -> str:
     """Get the current local date and time."""
     return datetime.datetime.now().strftime("%A, %B %d %Y, %I:%M %p")
 
 
-@beta_tool
 def open_application(app_name: str) -> str:
     """Open a desktop application on the user's computer.
 
@@ -45,7 +43,6 @@ def open_application(app_name: str) -> str:
         return f"Could not open {app_name}: {exc}"
 
 
-@beta_tool
 def open_website(url: str) -> str:
     """Open a URL in the user's default web browser.
 
@@ -58,7 +55,6 @@ def open_website(url: str) -> str:
     return f"Opened {url} in the browser."
 
 
-@beta_tool
 def get_system_status() -> str:
     """Report CPU, memory, disk usage and battery level of this computer."""
     cpu = psutil.cpu_percent(interval=0.5)
@@ -76,7 +72,6 @@ def get_system_status() -> str:
     return "\n".join(lines)
 
 
-@beta_tool
 def search_web(query: str) -> str:
     """Search the web and return the top results with titles, URLs and snippets.
 
@@ -96,7 +91,6 @@ def search_web(query: str) -> str:
         return f"Search failed: {exc}"
 
 
-@beta_tool
 def set_timer(minutes: float, label: str = "Timer") -> str:
     """Set a timer. When it goes off, JARVIS announces it out loud.
 
@@ -113,11 +107,10 @@ def set_timer(minutes: float, label: str = "Timer") -> str:
         except Exception:  # noqa: BLE001 — voice is optional; the print above suffices
             pass
 
-    threading.Timer(minutes * 60, fire).start()
-    return f"Timer set for {minutes:g} minute(s): {label}."
+    threading.Timer(float(minutes) * 60, fire).start()
+    return f"Timer set for {minutes} minute(s): {label}."
 
 
-@beta_tool
 def run_shell_command(command: str, reason: str) -> str:
     """Run a shell command on the user's computer. The user is asked to
     approve the exact command first — use this only when no other tool fits.

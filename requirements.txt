@@ -1,7 +1,10 @@
 # Core (required)
-anthropic>=1.0.0
+ollama>=0.4.0
 psutil>=5.9.0
 ddgs>=9.0.0
+
+# Optional: Claude API backend (paid, smartest). Uncomment if you set ANTHROPIC_API_KEY.
+# anthropic>=1.0.0
 
 # Voice mode (optional — see README for OS-specific notes)
 # pip install -r requirements-voice.txt
